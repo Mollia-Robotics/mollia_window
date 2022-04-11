@@ -4,10 +4,6 @@
 #define UNICODE
 #include <Windows.h>
 
-#ifndef BUILD_COMMIT
-#define BUILD_COMMIT unknown
-#endif
-
 #define xstr(s) str(s)
 #define str(s) #s
 

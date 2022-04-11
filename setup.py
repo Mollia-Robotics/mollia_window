@@ -1,10 +1,4 @@
-import subprocess
-
 from setuptools import Extension, setup
-
-commit = subprocess.check_output('git rev-parse --verify HEAD', shell=True).decode().strip()
-if subprocess.check_output('git status --short', shell=True).decode().strip():
-    commit += '-dirty'
 
 ext = Extension(
     name='mollia_window',
@@ -18,9 +12,6 @@ ext = Extension(
         './mollia_window/pixels.cpp',
         './mollia_window/preview_window.cpp',
         './mollia_window/ui_thread.cpp',
-    ],
-    define_macros=[
-        ('BUILD_COMMIT', commit),
     ],
     depends=[
         './mollia_window/base_window.hpp',

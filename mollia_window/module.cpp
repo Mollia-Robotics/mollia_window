@@ -191,8 +191,5 @@ PyObject * PyInit_mollia_window() {
     Py_INCREF(updates);
     PyModule_AddObject(module, "updates", updates);
 
-    // Expose the commit when the module was built
-    PyModule_AddObject(module, "commit", PyUnicode_FromString(xstr(BUILD_COMMIT)));
-
     return module;
 }
