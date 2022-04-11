@@ -32,6 +32,8 @@ ext = Extension(
 setup(
     name='mollia_window',
     version='1.0.0',
+    author='Mollia Zrt.',
+    license='MIT',
     install_requires=['pillow'],
     ext_modules=[ext],
 )
