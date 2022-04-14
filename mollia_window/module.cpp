@@ -62,6 +62,8 @@ void register_keys() {
 
     // backward compatibility
     add_key(PyUnicode_FromString("esc"), PyLong_FromLong(VK_ESCAPE));
+    add_key(PyUnicode_FromString("shift"), PyLong_FromLong(VK_SHIFT));
+    add_key(PyUnicode_FromString("enter"), PyLong_FromLong(VK_RETURN));
     add_key(PyUnicode_FromString("mouse_wheel"), PyLong_FromLong(VK_MBUTTON));
 
     add_key(PyUnicode_FromString("up"), PyLong_FromLong(VK_UP));
