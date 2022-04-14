@@ -60,6 +60,10 @@ void register_keys() {
     add_key(PyUnicode_FromString("pageup"), PyLong_FromLong(VK_PRIOR));
     add_key(PyUnicode_FromString("pagedown"), PyLong_FromLong(VK_NEXT));
 
+    // backward compatibility
+    add_key(PyUnicode_FromString("esc"), PyLong_FromLong(VK_ESCAPE));
+    add_key(PyUnicode_FromString("mouse_wheel"), PyLong_FromLong(VK_MBUTTON));
+
     add_key(PyUnicode_FromString("up"), PyLong_FromLong(VK_UP));
     add_key(PyUnicode_FromString("down"), PyLong_FromLong(VK_DOWN));
     add_key(PyUnicode_FromString("left"), PyLong_FromLong(VK_LEFT));
