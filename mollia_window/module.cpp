@@ -5,6 +5,12 @@
 #include "preview_window.hpp"
 #include "ui_thread.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_opengl3.h"
+
+#include <GL/GL.h>
+
 PyObject * commands;
 PyObject * child_windows;
 PyObject * named_windows;
@@ -113,6 +119,30 @@ PyObject * meth_update(PyObject * self) {
     for (int i = 0; i < num_child_windows; ++i) {
         update_base_window(child_window_array[i]);
     }
+
+    if (main_window->imgui_ready) {
+        EnterCriticalSection(&main_window->lock);
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui::NewFrame();
+
+        static bool show_demo_window = true;
+        if (show_demo_window) {
+            ImGui::ShowDemoWindow(&show_demo_window);
+        }
+
+        ImGui::Render();
+
+        const bool srgb = glIsEnabled(0x8DB9);
+        if (srgb) {
+            glDisable(0x8DB9);
+        }
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        if (srgb) {
+            glEnable(0x8DB9);
+        }
+        LeaveCriticalSection(&main_window->lock);
+    }
+
     // Swapbuffers will block until vsync
     SwapBuffers(main_window->hdc);
     Py_END_ALLOW_THREADS;

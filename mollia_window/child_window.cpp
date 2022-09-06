@@ -51,6 +51,11 @@ ChildWindow * meth_child_window(PyObject * self, PyObject * args, PyObject * kwa
         return 0;
     }
 
+    if (main_window->imgui_enabled) {
+        PyErr_Format(PyExc_Exception, "main window is in imgui mode");
+        return 0;
+    }
+
     // Name check
     if (PyDict_GetItemString(named_windows, name)) {
         PyErr_Format(PyExc_Exception, "%s already exists", name);

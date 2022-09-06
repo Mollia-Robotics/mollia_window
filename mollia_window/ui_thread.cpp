@@ -4,6 +4,8 @@
 #include "main_window.hpp"
 #include "preview_window.hpp"
 
+#include "imgui.h"
+
 HANDLE main_window_ready;
 HANDLE child_window_ready;
 HANDLE preview_window_ready;
@@ -102,6 +104,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_MOUSEMOVE: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMousePosEvent((float)(lParam & 0xffff), (float)(lParam >> 16));
+            }
             // Handle mouse movement
             RECT rect = {};
             POINT mouse = {};
@@ -124,6 +130,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_LBUTTONDOWN: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Left, true);
+            }
             // mouse1 or lbutton
             window->raw.key_down[1] = true;
             LeaveCriticalSection(&window->lock);
@@ -131,6 +141,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_LBUTTONUP: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Left, false);
+            }
             // mouse1 or lbutton
             window->raw.key_down[1] = false;
             LeaveCriticalSection(&window->lock);
@@ -138,6 +152,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_RBUTTONDOWN: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Right, true);
+            }
             // mouse2 or rbutton
             window->raw.key_down[2] = true;
             LeaveCriticalSection(&window->lock);
@@ -145,6 +163,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_RBUTTONUP: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Right, false);
+            }
             // mouse2 or rbutton
             window->raw.key_down[2] = false;
             LeaveCriticalSection(&window->lock);
@@ -152,6 +174,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_MBUTTONDOWN: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Middle, true);
+            }
             // mouse3 or mbutton
             window->raw.key_down[4] = true;
             LeaveCriticalSection(&window->lock);
@@ -159,6 +185,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_MBUTTONUP: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseButtonEvent(ImGuiMouseButton_Middle, false);
+            }
             // mouse3 or mbutton
             window->raw.key_down[4] = false;
             LeaveCriticalSection(&window->lock);
@@ -166,6 +196,10 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_MOUSEWHEEL: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiIO & io = ImGui::GetIO();
+                io.AddMouseWheelEvent(0.0f, (float)GET_WHEEL_DELTA_WPARAM(wParam) / (float)WHEEL_DELTA);
+            }
             // Mouse wheel
             window->raw.mouse_wheel += GET_WHEEL_DELTA_WPARAM(wParam);
             LeaveCriticalSection(&window->lock);
@@ -173,6 +207,14 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_KEYDOWN: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam);
+                ImGuiKey key = ImGui_ImplWin32_VirtualKeyToImGuiKey(wParam);
+                if (key != ImGuiKey_None) {
+                    ImGuiIO & io = ImGui::GetIO();
+                    io.AddKeyEvent(key, true);
+                }
+            }
             // Keyboard
             window->raw.key_down[wParam & 0xFF] = true;
             LeaveCriticalSection(&window->lock);
@@ -180,6 +222,14 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_KEYUP: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                ImGuiKey ImGui_ImplWin32_VirtualKeyToImGuiKey(WPARAM wParam);
+                ImGuiKey key = ImGui_ImplWin32_VirtualKeyToImGuiKey(wParam);
+                if (key != ImGuiKey_None) {
+                    ImGuiIO & io = ImGui::GetIO();
+                    io.AddKeyEvent(key, false);
+                }
+            }
             // Keyboard
             window->raw.key_down[wParam & 0xFF] = false;
             LeaveCriticalSection(&window->lock);
@@ -187,6 +237,12 @@ LRESULT CALLBACK BaseWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
         }
         case WM_CHAR: {
             EnterCriticalSection(&window->lock);
+            if (window == main_window && main_window->imgui_ready) {
+                if (wParam > 0 && wParam < 0x10000) {
+                    ImGuiIO & io = ImGui::GetIO();
+                    io.AddInputCharacterUTF16((unsigned short)wParam);
+                }
+            }
             // Text input
             if (window->raw.text_input_size < 256 - 1) {
                 window->raw.text_input[window->raw.text_input_size++] = wParam & 0xFFFF;

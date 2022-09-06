@@ -7,6 +7,8 @@ struct MainWindow : public BaseWindow {
     HMENU menu_windows;
     HGLRC hrc;
     HDC hdc;
+    bool imgui_enabled;
+    bool imgui_ready;
 };
 
 void create_main_window();

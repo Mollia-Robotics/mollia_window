@@ -2,6 +2,10 @@
 
 #include "ui_thread.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_opengl3.h"
+
 MainWindow * main_window;
 
 void create_main_window() {
@@ -17,6 +21,8 @@ void create_main_window() {
     main_window->hwnd = 0;
     main_window->hdc = 0;
     main_window->hrc = 0;
+    main_window->imgui_enabled = false;
+    main_window->imgui_ready = false;
     InitializeCriticalSection(&main_window->lock);
 }
 
@@ -33,24 +39,30 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     POINT pos = {0, 0};
     int visible = true;
     int menubar = true;
+    int imgui_enabled = false;
 
-    static char * keywords[] = {"size", "position", "visible", "menubar", 0};
+    static char * keywords[] = {"size", "position", "visible", "menubar", "imgui", 0};
 
     int args_ok = PyArg_ParseTupleAndKeywords(
         args,
         kwargs,
-        "|(ii)$(ii)pp",
+        "|(ii)$(ii)ppp",
         keywords,
         &size.x,
         &size.y,
         &pos.x,
         &pos.y,
         &visible,
-        &menubar
+        &menubar,
+        &imgui_enabled
     );
 
     if (!args_ok) {
         return 0;
+    }
+
+    if (imgui_enabled) {
+        menubar = false;
     }
 
     // There is only one main_window
@@ -64,6 +76,7 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     main_window->init.menubar = !!menubar;
     main_window->init.size = size;
     main_window->init.pos = pos;
+    main_window->imgui_enabled = !!imgui_enabled;
 
     // Notify the ui thread to create the actual window for the preview_window
     PostThreadMessage(ui_thread_id, WM_USER_CREATE_MAIN, 0, 0);
@@ -81,6 +94,27 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     _wglSwapIntervalProc _wglSwapInterval = (_wglSwapIntervalProc)wglGetProcAddress("wglSwapIntervalEXT");
     if (_wglSwapInterval) {
         _wglSwapInterval(1);
+    }
+
+    UpdateWindow(main_window->hwnd);
+
+    if (main_window->imgui_enabled) {
+        // Setup Dear ImGui context
+        IMGUI_CHECKVERSION();
+        ImGui::CreateContext();
+
+        // Setup Dear ImGui style
+        ImGui::StyleColorsDark();
+
+        // Setup Platform/Renderer backends
+        ImGui_ImplWin32_Init(main_window->hwnd);
+        ImGui_ImplOpenGL3_Init("#version 330 core");
+
+        ImGuiIO & io = ImGui::GetIO();
+        io.IniFilename = NULL;
+        io.DisplaySize = ImVec2((float)size.x, (float)size.y);
+        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        main_window->imgui_ready = true;
     }
 
     Py_INCREF(main_window);

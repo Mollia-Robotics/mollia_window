@@ -3,6 +3,9 @@ from setuptools import Extension, setup
 ext = Extension(
     name='mollia_window',
     libraries=['User32', 'Gdi32', 'Shell32', 'OpenGL32'],
+    include_dirs=[
+        './mollia_window/imgui',
+    ],
     sources=[
         './mollia_window/base_window.cpp',
         './mollia_window/child_window.cpp',
@@ -12,6 +15,13 @@ ext = Extension(
         './mollia_window/pixels.cpp',
         './mollia_window/preview_window.cpp',
         './mollia_window/ui_thread.cpp',
+        './mollia_window/imgui/imgui.cpp',
+        './mollia_window/imgui/imgui_draw.cpp',
+        './mollia_window/imgui/imgui_demo.cpp',
+        './mollia_window/imgui/imgui_tables.cpp',
+        './mollia_window/imgui/imgui_widgets.cpp',
+        './mollia_window/imgui/imgui_impl_win32.cpp',
+        './mollia_window/imgui/imgui_impl_opengl3.cpp',
     ],
     depends=[
         './mollia_window/base_window.hpp',
