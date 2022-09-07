@@ -29,8 +29,11 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
 
-      - name: deps
+      - name: pip wheel setuptools
         run: python -m pip install -U pip wheel setuptools
+
+      - name: deps
+        run: python deps.py
 
       - name: wheel
         run: python setup.py bdist_wheel
