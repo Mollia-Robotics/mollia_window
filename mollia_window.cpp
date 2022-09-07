@@ -600,7 +600,7 @@ PyObject * UIVariable_meth_update(UIVariable * self, PyObject * args) {
             return NULL;
         }
     } else {
-        if (!PyArg_ParseTuple(args, "|iiii", &self->int_values[0], &self->int_values[1], &self->int_values[2], &self->int_values[3])) {
+        if (!PyArg_ParseTuple(args, "|LLLL", &self->int_values[0], &self->int_values[1], &self->int_values[2], &self->int_values[3])) {
             return NULL;
         }
     }
