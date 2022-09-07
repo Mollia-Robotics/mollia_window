@@ -42,8 +42,11 @@ jobs:
 
       - uses: actions/setup-python@v2
 
+      - name: requirements
+        run: python -m pip install -U pip wheel setuptools requests cibuildwheel==2.2.2
+
       - name: deps
-        run: python -m pip install cibuildwheel==2.2.2
+        run: python deps.py
 
       - name: wheels
         run: python -m cibuildwheel --output-dir package
