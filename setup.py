@@ -25,10 +25,15 @@ ext = Extension(
     # extra_link_args=['/DEBUG:FULL'],
 )
 
+data_files = ['mollia_window.pyi']
+
+data_files.append('SDL2.dll')
+
 setup(
     name='mollia_window',
     version='2.0.0',
     author='Mollia Zrt.',
     license='MIT',
     ext_modules=[ext],
+    data_files=[('.', data_files)],
 )

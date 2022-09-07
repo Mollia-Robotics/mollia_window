@@ -1,3 +1,8 @@
-recursive-include mollia_window *.cpp *.hpp *.h
+include deps/imgui/*.cpp
+include deps/imgui/*.h
+include deps/imgui/backends/*.cpp
+include deps/imgui/backends/*.h
+recursive-include deps/SDL2/include *.h
+recursive-include deps/SDL2/lib/x64 *.lib
 include README.md
 include LICENSE
