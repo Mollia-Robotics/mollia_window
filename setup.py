@@ -2,48 +2,38 @@ from setuptools import Extension, setup
 
 ext = Extension(
     name='mollia_window',
-    libraries=['User32', 'Gdi32', 'Shell32', 'OpenGL32'],
     include_dirs=[
-        './mollia_window/imgui',
+        './deps/imgui',
+        './deps/imgui/backends',
+        './deps/SDL2/include',
+    ],
+    library_dirs=[
+        './deps/SDL2/lib/x64',
     ],
     sources=[
-        './mollia_window/base_window.cpp',
-        './mollia_window/child_window.cpp',
-        './mollia_window/input.cpp',
-        './mollia_window/main_window.cpp',
-        './mollia_window/module.cpp',
-        './mollia_window/pixels.cpp',
-        './mollia_window/preview_window.cpp',
-        './mollia_window/ui_thread.cpp',
-        './mollia_window/imgui/imgui.cpp',
-        './mollia_window/imgui/imgui_draw.cpp',
-        './mollia_window/imgui/imgui_demo.cpp',
-        './mollia_window/imgui/imgui_tables.cpp',
-        './mollia_window/imgui/imgui_widgets.cpp',
-        './mollia_window/imgui/imgui_impl_win32.cpp',
-        './mollia_window/imgui/imgui_impl_opengl3.cpp',
+        './mollia_window.cpp',
+        './deps/imgui/imgui.cpp',
+        './deps/imgui/imgui_draw.cpp',
+        './deps/imgui/imgui_demo.cpp',
+        './deps/imgui/imgui_tables.cpp',
+        './deps/imgui/imgui_widgets.cpp',
+        './deps/imgui/backends/imgui_impl_sdl.cpp',
+        './deps/imgui/backends/imgui_impl_opengl3.cpp',
     ],
-    depends=[
-        './mollia_window/base_window.hpp',
-        './mollia_window/child_window.hpp',
-        './mollia_window/input.hpp',
-        './mollia_window/common.hpp',
-        './mollia_window/main_window.hpp',
-        './mollia_window/module.hpp',
-        './mollia_window/pixels.hpp',
-        './mollia_window/preview_window.hpp',
-        './mollia_window/ui_thread.hpp',
-        'setup.py',
-    ],
+    libraries=['User32', 'Gdi32', 'Shell32', 'OpenGL32', 'SDL2'],
     # extra_compile_args=['/Z7'],
     # extra_link_args=['/DEBUG:FULL'],
 )
 
+data_files = ['mollia_window.pyi']
+
+data_files.append('SDL2.dll')
+
 setup(
     name='mollia_window',
-    version='1.1.0',
+    version='2.0.0',
     author='Mollia Zrt.',
     license='MIT',
-    install_requires=['pillow'],
     ext_modules=[ext],
+    data_files=[('.', data_files)],
 )

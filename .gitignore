@@ -3,7 +3,10 @@
 __pycache__
 build
 dist
+deps
 
 *.egg-info
 *.pyd
 *.obj
+*.dll
+*.ini

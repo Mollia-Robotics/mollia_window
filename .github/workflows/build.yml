@@ -29,8 +29,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           architecture: ${{ matrix.architecture }}
 
-      - name: pip wheel setuptools
-        run: python -m pip install -U pip wheel setuptools
+      - name: requirements
+        run: python -m pip install -U pip wheel setuptools requests
 
       - name: deps
         run: python deps.py

@@ -2,7 +2,7 @@ project = 'mollia_bullet'
 copyright = '2022, Mollia Zrt.'
 author = 'Mollia Zrt.'
 
-release = '1.1.0'
+release = '2.0.0'
 
 extensions = ['sphinx_rtd_theme']
 
