@@ -8,6 +8,8 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 
+#include <GL/gl.h>
+
 struct UIVariable {
     PyObject_HEAD
     ImGuiDataType data_type;
@@ -505,6 +507,30 @@ PyObject * UI_meth_demo(UI * self) {
     Py_RETURN_NONE;
 }
 
+PyObject * UI_meth_image(UI * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"texture", "size", "title", NULL};
+
+    int texture;
+    float width, height;
+    const char * title = "";
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i(ff)s", keywords, &texture, &width, &height, &title)) {
+        return NULL;
+    }
+
+    int last_texture = 0;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, last_texture);
+
+    ImGui::SetWindowSize({0.0f, 0.0f});
+    ImGui::Begin(title, NULL, ImGuiWindowFlags_NoResize);
+    ImGui::Image((ImTextureID)texture, {width, height});
+    ImGui::End();
+}
+
 UIWindow * UI_meth_window(PyObject * self, PyObject * args, PyObject * kwargs) {
     static char * keywords[] = {"title", "size", NULL};
 
@@ -645,6 +671,7 @@ PyMethodDef UIWindow_methods[] = {
 
 PyMethodDef UI_methods[] = {
     {"demo", (PyCFunction)UI_meth_demo, METH_NOARGS, NULL},
+    {"image", (PyCFunction)UI_meth_image, METH_VARARGS | METH_KEYWORDS, NULL},
     {"text", (PyCFunction)UI_meth_text, METH_VARARGS | METH_KEYWORDS, NULL},
     {"button", (PyCFunction)UI_meth_button, METH_VARARGS | METH_KEYWORDS, NULL},
     {"slider", (PyCFunction)UI_meth_slider, METH_VARARGS | METH_KEYWORDS, NULL},
