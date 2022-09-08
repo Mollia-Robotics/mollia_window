@@ -144,6 +144,9 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
+    ImGui::GetStyle().Colors[ImGuiCol_TitleBgActive] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().Colors[ImGuiCol_TitleBgCollapsed] = ImGui::GetStyle().Colors[ImGuiCol_TitleBg];
+    ImGui::GetStyle().WindowBorderSize = 0.0f;
 
     ImGuiIO & io = ImGui::GetIO();
     io.IniFilename = NULL;
@@ -474,7 +477,8 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
         strcpy(input_buffer, PyUnicode_AsUTF8(line));
         bool reclaim_focus = false;
         ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
-        if (ImGui::InputText("Input", input_buffer, IM_ARRAYSIZE(input_buffer), input_text_flags, NULL, NULL)) {
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        if (ImGui::InputText("##Input", input_buffer, IM_ARRAYSIZE(input_buffer), input_text_flags, NULL, NULL)) {
             reclaim_focus = true;
             PyObject * callback = PyDict_GetItemString(callbacks, "console_execute");
             Py_XDECREF(PyObject_CallFunction(callback, "(s)", input_buffer));
@@ -502,6 +506,15 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
         render_content(sidebar_state, callbacks, variables);
     }
     ImGui::End();
+
+    PyObject * tooltip = PyDict_GetItemString(self->ui->context, "tooltip");
+    if (tooltip != Py_None) {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+        ImGui::TextUnformatted(PyUnicode_AsUTF8(tooltip));
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
 
     if (next_console_open != console_open) {
         PyDict_SetItemString(console_state, "open", next_console_open ? Py_True : Py_False);

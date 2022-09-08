@@ -153,6 +153,7 @@ wnd.ui.context.update({
             },
         ],
     },
+    'tooltip': 'hello',
 })
 
 while mollia_window.update():
