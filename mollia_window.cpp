@@ -13,6 +13,7 @@
 struct MainWindow {
     PyObject_HEAD
     PyObject * size;
+    PyObject * ratio;
     PyObject * mouse;
     PyObject * mouse_wheel;
     PyObject * text;
@@ -42,8 +43,8 @@ PyObject * empty_str;
 MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwargs) {
     static char * keywords[] = {"size", "title", NULL};
 
-    int width = 1280;
-    int height = 720;
+    int width = 1800;
+    int height = 960;
     const char * title = "Mollia Window";
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|(II)s", keywords, &width, &height, &title)) {
@@ -160,6 +161,7 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
 
     MainWindow * res = PyObject_New(MainWindow, MainWindow_type);
     res->size = Py_BuildValue("(II)", width, height);
+    res->ratio = PyFloat_FromDouble((double)width / (double)height);
     res->mouse = Py_BuildValue("(ii)", 0, 0);
     res->mouse_wheel = PyLong_FromLong(0);
     res->ui = PyObject_New(UI, UI_type);
@@ -709,6 +711,7 @@ PyMethodDef UI_methods[] = {
 
 PyMemberDef MainWindow_members[] = {
     {"size", T_OBJECT, offsetof(MainWindow, size), READONLY, NULL},
+    {"ratio", T_OBJECT, offsetof(MainWindow, ratio), READONLY, NULL},
     {"mouse", T_OBJECT, offsetof(MainWindow, mouse), READONLY, NULL},
     {"mouse_wheel", T_OBJECT, offsetof(MainWindow, mouse_wheel), READONLY, NULL},
     {"text", T_OBJECT, offsetof(MainWindow, text), READONLY, NULL},
