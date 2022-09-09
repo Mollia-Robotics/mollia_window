@@ -31,7 +31,7 @@ data_files.append('SDL2.dll')
 
 setup(
     name='mollia_window',
-    version='2.0.0',
+    version='2.1.0',
     author='Mollia Zrt.',
     license='MIT',
     ext_modules=[ext],
