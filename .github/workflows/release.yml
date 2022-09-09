@@ -46,10 +46,6 @@ jobs:
 
       - uses: actions/setup-python@v3
 
-      - name: packages
-        if: matrix.os == 'ubuntu-20.04'
-        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev
-
       - name: requirements
         run: python -m pip install -U pip wheel setuptools requests cibuildwheel==2.9.0
 
@@ -60,6 +56,7 @@ jobs:
         run: python -m cibuildwheel --output-dir package
         env:
           CIBW_BUILD: cp39-win_amd64 cp310-win_amd64 cp39-manylinux_x86_64 cp310-manylinux_x86_64
+          CIBW_BEFORE_ALL_LINUX: apt-get update && apt-get install -y libsdl2-dev
 
       - name: upload
         uses: actions/upload-artifact@v3
