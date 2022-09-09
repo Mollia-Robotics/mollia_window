@@ -408,7 +408,7 @@ void render_content(PyObject * root, PyObject * callbacks, PyObject * variables,
             PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
             PyObject * value = PyDict_GetItemString(variable, "value");
             PyObject * options = PyDict_GetItemString(variable, "options");
-            int index = PySequence_Index(options, value);
+            int index = (int)PySequence_Index(options, value);
             int num_items = (int)PyList_Size(options);
             const char * items[256];
             for (int i = 0; i < num_items; ++i) {
