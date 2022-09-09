@@ -10,10 +10,10 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: setup
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: '3.10'
           architecture: x64
@@ -28,22 +28,30 @@ jobs:
         run: python setup.py sdist -d package
 
       - name: upload
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package
           path: package/*.tar.gz
 
   wheels:
     name: Build wheels
-    runs-on: windows-2019
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-2019]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
+
+      - name: packages
+        if: matrix.os == 'ubuntu-latest'
+        run: apt-get update && apt-get install -y libsdl2-dev
 
       - name: requirements
-        run: python -m pip install -U pip wheel setuptools requests cibuildwheel==2.2.2
+        run: python -m pip install -U pip wheel setuptools requests cibuildwheel==2.9.0
 
       - name: deps
         run: python deps.py
@@ -51,10 +59,10 @@ jobs:
       - name: wheels
         run: python -m cibuildwheel --output-dir package
         env:
-          CIBW_BUILD: cp39-win_amd64 cp310-win_amd64
+          CIBW_BUILD: cp39-win_amd64 cp310-win_amd64 cp39-manylinux_x86_64 cp310-manylinux_x86_64
 
       - name: upload
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: package
           path: package/*.whl
