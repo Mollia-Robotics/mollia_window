@@ -1,7 +1,7 @@
 import mollia_window
 import zengl
 
-wnd = mollia_window.main_window((1800, 960))
+wnd = mollia_window.main_window()
 ctx = zengl.context()
 
 image = ctx.image(wnd.size, 'rgba8unorm', samples=4)
@@ -11,27 +11,50 @@ import os
 texture = ctx.image((256, 256), 'rgba8unorm', os.urandom(256 * 256 * 4))
 
 
-def temp(line):
-    wnd.ui.context['sidebar']['open'] = (line[0] == 'a')
-
-
 wnd.ui.context.update({
     'callbacks': {
         'print': lambda: print('Hello World!'),
-        'console_execute': temp,
+        'console_execute': lambda line: print(line),
         'top_view': lambda: zengl.inspect(texture)['texture'],
     },
     'variables': {
-        'is_foobar': {
+        'is_foo': {
             'value': False,
         },
-        'temperature': {
+        'is_bar': {
+            'value': True,
+        },
+        'temperature_1': {
             'value': 32.2,
             'min': -14.0,
             'max': 99.8,
             'type': 'float',
         },
-        'frame': {
+        'temperature_2': {
+            'value': 32.2,
+            'min': -14.0,
+            'max': 99.8,
+            'type': 'float',
+        },
+        'temperature_3': {
+            'value': 32.2,
+            'min': -14.0,
+            'max': 99.8,
+            'type': 'float',
+        },
+        'frame_1': {
+            'value': 25,
+            'min': 0,
+            'max': 100,
+            'type': 'int',
+        },
+        'frame_2': {
+            'value': 25,
+            'min': 0,
+            'max': 100,
+            'type': 'int',
+        },
+        'frame_3': {
             'value': 25,
             'min': 0,
             'max': 100,
@@ -52,19 +75,11 @@ wnd.ui.context.update({
             'Donec quis quam sit amet ipsum ullamcorper dignissim.',
             'Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.',
         ],
-        'history': ['hello()', 'world()'],
         'line': '',
     },
     'sidebar': {
         'open': True,
         'content': [
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'text', 'text': 'Hello World!'},
-            {'type': 'button', 'text': 'Click Me', 'click': 'print'},
             {
                 'type': 'header',
                 'text': 'Settings 1',
@@ -75,15 +90,30 @@ wnd.ui.context.update({
                         'text': 'Settings Nested 1',
                         'open': True,
                         'content': [
-                            {'type': 'checkbox', 'text': 'FooBar', 'variable': 'is_foobar'},
-                            # {'type': 'slider', 'text': 'Frame', 'variable': 'frame', 'format': '%d'},
-                            # {'type': 'slider', 'text': 'Temperature', 'variable': 'temperature', 'format': '%.2f'},
-                            {'type': 'drag', 'text': 'Frame', 'variable': 'frame', 'format': '%d', 'speed': 1.0},
-                            {'type': 'drag', 'text': 'Temperature', 'variable': 'temperature', 'format': '%.2f', 'speed': 1.0},
+                            {'type': 'checkbox', 'text': 'Foo Enabled', 'variable': 'is_foo'},
+                            {'type': 'checkbox', 'text': 'Bar Mode', 'variable': 'is_bar'},
+                            {'type': 'slider', 'text': 'Temperature 1', 'variable': 'temperature_1', 'format': '%.2f'},
+                            {'type': 'slider', 'text': 'Frame 1', 'variable': 'frame_1', 'format': '%d'},
+                            {'type': 'drag', 'text': 'Temperature 2', 'variable': 'temperature_2', 'format': '%.2f', 'speed': 1.0},
+                            {'type': 'drag', 'text': 'Frame 2', 'variable': 'frame_2', 'format': '%d', 'speed': 1.0},
+                            {'type': 'input', 'text': 'Temperature 3', 'variable': 'temperature_3', 'format': '%.2f', 'step': 0.5},
+                            {'type': 'input', 'text': 'Frame 3', 'variable': 'frame_3', 'format': '%d', 'step': 1},
                             {'type': 'combo', 'text': 'Vegetable', 'variable': 'vegetable'},
-                            # {'type': 'text', 'text': 'FooBar?'},
-                            # {'type': 'text', 'text': 'FooBar?'},
-                            # {'type': 'text', 'text': 'FooBar?'},
+                            {'type': 'button', 'text': 'Click Me', 'click': 'print'},
+                            {'type': 'separator'},
+                            {'type': 'text', 'text': 'Some Text'},
+                            {'type': 'text', 'text': 'Some Text'},
+                            {'type': 'text', 'text': 'Some Text'},
+                            {'type': 'separator'},
+                            {
+                                'type': 'line',
+                                'content': [
+                                    {'type': 'button', 'text': 'Test 1', 'click': 'print'},
+                                    {'type': 'button', 'text': 'Test 2', 'click': 'print'},
+                                    {'type': 'button', 'text': 'Test 3', 'click': 'print'},
+                                ],
+                            },
+                            {'type': 'separator'},
                         ],
                     },
                     {
@@ -153,7 +183,7 @@ wnd.ui.context.update({
             },
         ],
     },
-    'tooltip': 'hello',
+    'tooltip': None,
 })
 
 while mollia_window.update():

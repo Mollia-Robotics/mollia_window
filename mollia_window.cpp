@@ -165,7 +165,7 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     res->mouse = Py_BuildValue("(ii)", 0, 0);
     res->mouse_wheel = PyLong_FromLong(0);
     res->ui = PyObject_New(UI, UI_type);
-    res->ui->context = PyDict_New();
+    res->ui->context = Py_BuildValue("{s{}s{}s{sOs[]ss}s{sOs[]}sO}", "callbacks", "variables", "console", "open", Py_False, "lines", "line", "", "sidebar", "open", Py_False, "content", "tooltip", Py_None);
 
     Py_INCREF(empty_str);
     res->text = empty_str;
@@ -290,11 +290,12 @@ int sdl_key(int key) {
     return 0;
 }
 
-void render_content(PyObject * root, PyObject * callbacks, PyObject * variables, bool columns = false) {
+void render_content(PyObject * root, PyObject * callbacks, PyObject * variables, int prefix = 0) {
     PyObject * content = PyDict_GetItemString(root, "content");
     for (int i = 0; i < (int)PyList_Size(content); ++i) {
-        if (columns) {
-            ImGui::TableNextColumn();
+        switch (prefix) {
+            case 1: ImGui::TableNextColumn(); break;
+            case 2: if (i) ImGui::SameLine(); break;
         }
         PyObject * obj = PyList_GetItem(content, i);
         PyObject * type = PyDict_GetItemString(obj, "type");
@@ -376,6 +377,40 @@ void render_content(PyObject * root, PyObject * callbacks, PyObject * variables,
                 continue;
             }
         }
+        if (!PyUnicode_CompareWithASCIIString(type, "input")) {
+            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
+            PyObject * variable_type = PyDict_GetItemString(variable, "type");
+            if (!PyUnicode_CompareWithASCIIString(variable_type, "float")) {
+                double value = PyFloat_AsDouble(PyDict_GetItemString(variable, "value"));
+                double min_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "min"));
+                double max_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "max"));
+                double step = PyFloat_AsDouble(PyDict_GetItemString(obj, "step"));
+                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
+                if (ImGui::InputScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_Double, &value, &step, NULL, format)) {
+                    value = value > min_value ? value : min_value;
+                    value = value < max_value ? value : max_value;
+                    PyObject * new_value = PyFloat_FromDouble(value);
+                    PyDict_SetItemString(variable, "value", new_value);
+                    Py_DECREF(new_value);
+                }
+                continue;
+            }
+            if (!PyUnicode_CompareWithASCIIString(variable_type, "int")) {
+                int value = PyLong_AsLong(PyDict_GetItemString(variable, "value"));
+                int min_value = PyLong_AsLong(PyDict_GetItemString(variable, "min"));
+                int max_value = PyLong_AsLong(PyDict_GetItemString(variable, "max"));
+                int step = PyLong_AsLong(PyDict_GetItemString(obj, "step"));
+                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
+                if (ImGui::InputScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_S32, &value, &step, NULL, format)) {
+                    value = value > min_value ? value : min_value;
+                    value = value < max_value ? value : max_value;
+                    PyObject * new_value = PyLong_FromLong(value);
+                    PyDict_SetItemString(variable, "value", new_value);
+                    Py_DECREF(new_value);
+                }
+                continue;
+            }
+        }
         if (!PyUnicode_CompareWithASCIIString(type, "combo")) {
             PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
             PyObject * value = PyDict_GetItemString(variable, "value");
@@ -433,9 +468,17 @@ void render_content(PyObject * root, PyObject * callbacks, PyObject * variables,
         if (!PyUnicode_CompareWithASCIIString(type, "table")) {
             int columns = PyLong_AsLong(PyDict_GetItemString(obj, "columns"));
             if (ImGui::BeginTable("table", columns)) {
-                render_content(obj, callbacks, variables, true);
+                render_content(obj, callbacks, variables, 1);
                 ImGui::EndTable();
             }
+            continue;
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "line")) {
+            render_content(obj, callbacks, variables, 2);
+            continue;
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "separator")) {
+            ImGui::Separator();
             continue;
         }
     }
