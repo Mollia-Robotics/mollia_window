@@ -1,15 +1,37 @@
+import platform
 from setuptools import Extension, setup
 
-ext = Extension(
-    name='mollia_window',
-    include_dirs=[
+# sudo apt install libsdl2-dev
+
+system = platform.system().lower()
+
+include_dirs = {
+    'windows': [
         './deps/imgui',
         './deps/imgui/backends',
         './deps/SDL2/include',
     ],
-    library_dirs=[
-        './deps/SDL2/lib/x64',
+    'linux': [
+        './deps/imgui',
+        './deps/imgui/backends',
+        '/usr/include/SDL2',
     ],
+}
+
+library_dirs = {
+    'windows': ['./deps/SDL2/lib/x64'],
+    'linux': ['/usr/lib/x86_64-linux-gnu/'],
+}
+
+libraries = {
+    'windows': ['User32', 'Gdi32', 'Shell32', 'OpenGL32', 'SDL2'],
+    'linux': ['GL', 'SDL2'],
+}
+
+ext = Extension(
+    name='mollia_window',
+    include_dirs=include_dirs[system],
+    library_dirs=library_dirs[system],
     sources=[
         './mollia_window.cpp',
         './deps/imgui/imgui.cpp',
@@ -20,14 +42,10 @@ ext = Extension(
         './deps/imgui/backends/imgui_impl_sdl.cpp',
         './deps/imgui/backends/imgui_impl_opengl3.cpp',
     ],
-    libraries=['User32', 'Gdi32', 'Shell32', 'OpenGL32', 'SDL2'],
+    libraries=libraries[system],
     # extra_compile_args=['/Z7'],
     # extra_link_args=['/DEBUG:FULL'],
 )
-
-data_files = ['mollia_window.pyi']
-
-data_files.append('SDL2.dll')
 
 setup(
     name='mollia_window',
@@ -35,5 +53,5 @@ setup(
     author='Mollia Zrt.',
     license='MIT',
     ext_modules=[ext],
-    data_files=[('.', data_files)],
+    data_files=[('.', ['mollia_window.pyi', 'SDL2.dll'])],
 )

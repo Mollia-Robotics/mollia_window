@@ -10,3 +10,4 @@ deps
 *.obj
 *.dll
 *.ini
+*.so

@@ -35,13 +35,13 @@ PyObject * keys;
 PyObject * empty_str;
 
 MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwargs) {
-    static char * keywords[] = {"size", "title", NULL};
+    const char * keywords[] = {"size", "title", NULL};
 
     int width = 1800;
     int height = 960;
     const char * title = "Mollia Window";
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|(II)s", keywords, &width, &height, &title)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|(II)s", (char **)keywords, &width, &height, &title)) {
         return NULL;
     }
 
@@ -729,7 +729,7 @@ PyMemberDef MainWindow_members[] = {
 PyType_Slot MainWindow_slots[] = {
     {Py_tp_methods, MainWindow_methods},
     {Py_tp_members, MainWindow_members},
-    {Py_tp_dealloc, default_dealloc},
+    {Py_tp_dealloc, (void *)default_dealloc},
     {},
 };
 
