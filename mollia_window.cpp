@@ -17,16 +17,10 @@ struct MainWindow {
     PyObject * mouse;
     PyObject * mouse_wheel;
     PyObject * text;
-    struct UI * ui;
-};
-
-struct UI {
-    PyObject_HEAD
-    PyObject * context;
+    PyObject * ui;
 };
 
 PyTypeObject * MainWindow_type;
-PyTypeObject * UI_type;
 
 SDL_Window * window;
 bool closed;
@@ -164,8 +158,7 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     res->ratio = PyFloat_FromDouble((double)width / (double)height);
     res->mouse = Py_BuildValue("(ii)", 0, 0);
     res->mouse_wheel = PyLong_FromLong(0);
-    res->ui = PyObject_New(UI, UI_type);
-    res->ui->context = Py_BuildValue("{s{}s{}s{sOs[]ss}s{sOs[]}sO}", "callbacks", "variables", "console", "open", Py_False, "lines", "line", "", "sidebar", "open", Py_False, "content", "tooltip", Py_None);
+    res->ui = Py_BuildValue("{s{}s{}s{sOs[]ss}s{sOs[]}sO}", "callbacks", "variables", "console", "open", Py_False, "lines", "line", "", "sidebar", "open", Py_False, "content", "tooltip", Py_None);
 
     Py_INCREF(empty_str);
     res->text = empty_str;
@@ -491,9 +484,9 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
 
     ImGuiIO & io = ImGui::GetIO();
 
-    PyObject * callbacks = PyDict_GetItemString(self->ui->context, "callbacks");
-    PyObject * variables = PyDict_GetItemString(self->ui->context, "variables");
-    PyObject * console_state = PyDict_GetItemString(self->ui->context, "console");
+    PyObject * callbacks = PyDict_GetItemString(self->ui, "callbacks");
+    PyObject * variables = PyDict_GetItemString(self->ui, "variables");
+    PyObject * console_state = PyDict_GetItemString(self->ui, "console");
     bool console_open = PyObject_IsTrue(PyDict_GetItemString(console_state, "open"));
     ImGui::SetNextWindowPos({0.0f, 0.0f});
     ImGui::SetNextWindowSize({io.DisplaySize.x - 400.0f, 200.0f});
@@ -541,7 +534,7 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     }
     ImGui::End();
 
-    PyObject * sidebar_state = PyDict_GetItemString(self->ui->context, "sidebar");
+    PyObject * sidebar_state = PyDict_GetItemString(self->ui, "sidebar");
     bool sidebar_open = PyObject_IsTrue(PyDict_GetItemString(sidebar_state, "open"));
     ImGui::SetNextWindowPos({io.DisplaySize.x - 400.0f, 0.0f});
     ImGui::SetNextWindowSize({400.0f, io.DisplaySize.y});
@@ -552,7 +545,7 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     }
     ImGui::End();
 
-    PyObject * tooltip = PyDict_GetItemString(self->ui->context, "tooltip");
+    PyObject * tooltip = PyDict_GetItemString(self->ui, "tooltip");
     if (tooltip != Py_None) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -704,33 +697,9 @@ PyObject * MainWindow_meth_key_up(MainWindow * self, PyObject * arg) {
     return NULL;
 }
 
-PyObject * UI_meth_demo(UI * self) {
+PyObject * MainWindow_meth_demo(MainWindow * self) {
     ImGui::ShowDemoWindow(NULL);
     Py_RETURN_NONE;
-}
-
-PyObject * UI_meth_image(UI * self, PyObject * args, PyObject * kwargs) {
-    static char * keywords[] = {"texture", "size", "title", NULL};
-
-    int texture;
-    float width, height;
-    const char * title = "";
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "i(ff)s", keywords, &texture, &width, &height, &title)) {
-        return NULL;
-    }
-
-    int last_texture = 0;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, last_texture);
-
-    ImGui::SetWindowSize({0.0f, 0.0f});
-    ImGui::Begin(title, NULL, ImGuiWindowFlags_NoResize);
-    ImGui::Image((ImTextureID)(long long)texture, {width, height});
-    ImGui::End();
 }
 
 void default_dealloc(PyObject * self) {
@@ -743,12 +712,7 @@ PyMethodDef MainWindow_methods[] = {
     {"key_released", (PyCFunction)MainWindow_meth_key_released, METH_O, NULL},
     {"key_down", (PyCFunction)MainWindow_meth_key_down, METH_O, NULL},
     {"key_up", (PyCFunction)MainWindow_meth_key_up, METH_O, NULL},
-    {},
-};
-
-PyMethodDef UI_methods[] = {
-    {"image", (PyCFunction)UI_meth_image, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"demo", (PyCFunction)UI_meth_demo, METH_NOARGS, NULL},
+    {"demo", (PyCFunction)MainWindow_meth_demo, METH_NOARGS, NULL},
     {},
 };
 
@@ -762,11 +726,6 @@ PyMemberDef MainWindow_members[] = {
     {},
 };
 
-PyMemberDef UI_members[] = {
-    {"context", T_OBJECT, offsetof(UI, context), READONLY, NULL},
-    {},
-};
-
 PyType_Slot MainWindow_slots[] = {
     {Py_tp_methods, MainWindow_methods},
     {Py_tp_members, MainWindow_members},
@@ -774,15 +733,7 @@ PyType_Slot MainWindow_slots[] = {
     {},
 };
 
-PyType_Slot UI_slots[] = {
-    {Py_tp_methods, UI_methods},
-    {Py_tp_members, UI_members},
-    {Py_tp_dealloc, default_dealloc},
-    {},
-};
-
 PyType_Spec MainWindow_spec = {"mollia_window.MainWindow", sizeof(MainWindow), 0, Py_TPFLAGS_DEFAULT, MainWindow_slots};
-PyType_Spec UI_spec = {"mollia_window.UI", sizeof(UI), 0, Py_TPFLAGS_DEFAULT, UI_slots};
 
 PyMethodDef module_methods[] = {
     {"main_window", (PyCFunction)meth_main_window, METH_VARARGS | METH_KEYWORDS, NULL},
@@ -802,13 +753,9 @@ extern "C" PyObject * PyInit_mollia_window() {
     PyObject * module = PyModule_Create(&module_def);
 
     MainWindow_type = (PyTypeObject *)PyType_FromSpec(&MainWindow_spec);
-    UI_type = (PyTypeObject *)PyType_FromSpec(&UI_spec);
 
     Py_INCREF(MainWindow_type);
     PyModule_AddObject(module, "MainWindow", (PyObject *)MainWindow_type);
-
-    Py_INCREF(UI_type);
-    PyModule_AddObject(module, "UI", (PyObject *)UI_type);
 
     empty_str = PyUnicode_FromString("");
     keys = PyDict_New();

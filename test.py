@@ -11,7 +11,7 @@ import os
 texture = ctx.image((256, 256), 'rgba8unorm', os.urandom(256 * 256 * 4))
 
 
-wnd.ui.context.update({
+wnd.ui.update({
     'callbacks': {
         'print': lambda: print('Hello World!'),
         'console_execute': lambda line: print(line),
@@ -187,7 +187,7 @@ wnd.ui.context.update({
 })
 
 while mollia_window.update():
-    wnd.ui.demo()
+    wnd.demo()
 
     if wnd.key_down('mouse1'):
         image.clear_value = (0.0, 0.0, 0.0, 1.0)
