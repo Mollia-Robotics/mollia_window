@@ -424,13 +424,18 @@ void render_content(PyObject * root, PyObject * callbacks, PyObject * variables,
             int texture = PyLong_AsLong(PyObject_CallFunction(callback, NULL));
             float width = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "width"));
             float height = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "height"));
+            bool flip = PyObject_IsTrue(PyDict_GetItemString(obj, "flip"));
             int last_texture = 0;
             glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
             glBindTexture(GL_TEXTURE_2D, texture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glBindTexture(GL_TEXTURE_2D, last_texture);
-            ImGui::Image((ImTextureID)(long long)texture, {width, height});
+            if (flip) {
+                ImGui::Image((ImTextureID)(long long)texture, {width, height}, {0.0f, 1.0f}, {1.0f, 0.0f});
+            } else {
+                ImGui::Image((ImTextureID)(long long)texture, {width, height});
+            }
             continue;
         }
         if (!PyUnicode_CompareWithASCIIString(type, "header")) {

@@ -1,3 +1,4 @@
+import numpy as np
 import mollia_window
 import zengl
 
@@ -7,8 +8,10 @@ ctx = zengl.context()
 image = ctx.image(wnd.size, 'rgba8unorm', samples=4)
 image.clear_value = (1.0, 1.0, 1.0, 1.0)
 
-import os
-texture = ctx.image((256, 256), 'rgba8unorm', os.urandom(256 * 256 * 4))
+pixels = np.random.uniform(0.0, 1.0, (256, 256, 4))
+pixels.transpose(1, 0, 2)[:, :, 2] = np.linspace(0.0, 1.0, 256)
+
+texture = ctx.image((256, 256), 'rgba8unorm', (pixels * 255).astype('u1').tobytes())
 
 
 wnd.ui.update({
@@ -145,7 +148,7 @@ wnd.ui.update({
                 'text': 'View 1',
                 'open': False,
                 'content': [
-                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0 },
+                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0, 'flip': True },
                 ],
             },
             {
@@ -153,7 +156,7 @@ wnd.ui.update({
                 'text': 'View 2',
                 'open': False,
                 'content': [
-                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0 },
+                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0, 'flip': True },
                 ],
             },
             {
@@ -161,7 +164,7 @@ wnd.ui.update({
                 'text': 'View 3',
                 'open': False,
                 'content': [
-                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0 },
+                    {'type': 'image', 'texture': 'top_view', 'width': 256.0, 'height': 256.0, 'flip': True },
                 ],
             },
             {
@@ -173,10 +176,10 @@ wnd.ui.update({
                         'type': 'table',
                         'columns': 2,
                         'content': [
-                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0 },
-                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0 },
-                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0 },
-                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0 },
+                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0, 'flip': True },
+                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0, 'flip': True },
+                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0, 'flip': False },
+                            {'type': 'image', 'texture': 'top_view', 'width': 190.0, 'height': 190.0, 'flip': False },
                         ]
                     },
                 ],
