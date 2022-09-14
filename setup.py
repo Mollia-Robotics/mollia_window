@@ -49,7 +49,7 @@ ext = Extension(
 
 setup(
     name='mollia_window',
-    version='2.2.0',
+    version='2.3.0',
     author='Mollia Zrt.',
     license='MIT',
     ext_modules=[ext],
