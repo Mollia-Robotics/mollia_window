@@ -82,32 +82,45 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
 
     glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)SDL_GL_GetProcAddress("glBindFramebuffer");
 
-    #define B 0x00, 0x00, 0x00, 0xff
-    #define W 0xff, 0xff, 0xff, 0xff
-    #define R 0xd4, 0x00, 0x00, 0xff
-    unsigned char pixels[1024] = {
-        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
-        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
-        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
-        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
-        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
-        B, W, W, W, B, B, W, W, W, W, W, W, W, W, W, B,
-        B, W, W, B, B, B, W, W, W, W, W, W, W, W, W, B,
-        B, W, B, B, B, B, W, W, R, R, R, R, R, W, W, B,
-        B, B, B, W, B, B, W, R, R, R, R, R, R, R, W, B,
-        B, B, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
-        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
-        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
-        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
-        B, W, W, W, B, B, W, W, R, R, R, R, R, W, W, B,
-        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
-        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
+    const unsigned B = 0xff000000;
+    const unsigned W = 0xffffffff;
+    const unsigned R = 0xff0000d4;
+    unsigned pixels[1024] = {
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, B, B, B, B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, B, B, B, B, B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, B, B, B, B, B, B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, B, B, B, B, B, B, B, B, W, W, W, W, W, W, R, R, R, R, R, R, W, W, W, W, W, W, B, B,
+        B, B, W, B, B, B, B, W, B, B, B, B, W, W, W, W, R, R, R, R, R, R, R, R, R, R, W, W, W, W, B, B,
+        B, B, B, B, B, B, W, W, B, B, B, B, W, W, W, R, R, R, R, R, R, R, R, R, R, R, R, W, W, W, B, B,
+        B, B, B, B, B, W, W, W, B, B, B, B, W, W, W, R, R, R, R, R, R, R, R, R, R, R, R, W, W, W, B, B,
+        B, B, B, B, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, B, W, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, R, R, R, R, R, R, R, R, R, R, R, R, R, R, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, W, R, R, R, R, R, R, R, R, R, R, R, R, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, W, R, R, R, R, R, R, R, R, R, R, R, R, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, W, W, R, R, R, R, R, R, R, R, R, R, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, B, B, B, B, W, W, W, W, W, W, R, R, R, R, R, R, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B, B,
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
     };
-    #undef B
-    #undef W
-    #undef R
 
-    SDL_Surface * surface = SDL_CreateRGBSurfaceFrom(pixels, 16, 16, 32, 64, 0xff, 0xff00, 0xff0000, 0xff000000);
+    SDL_Surface * surface = SDL_CreateRGBSurfaceFrom(pixels, 32, 32, 32, 128, 0xff, 0xff00, 0xff0000, 0xff000000);
     SDL_SetWindowIcon(window, surface);
     SDL_FreeSurface(surface);
 
