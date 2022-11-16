@@ -1,4 +1,5 @@
-from typing import Callable, Dict, List, Literal, Tuple, TypedDict
+import io
+from typing import Any, Callable, Dict, List, Literal, Tuple
 
 Key = Literal[
     'mouse1', 'mouse2', 'mouse3', 'tab', 'left_arrow', 'right_arrow', 'up_arrow', 'down_arrow', 'pageup', 'pagedown',
@@ -13,67 +14,30 @@ Key = Literal[
 ]
 
 
-class UI_Variable(TypedDict, total=False):
-    type: Literal['int', 'float', 'str']
-    value: int | float | str | bool
-    min: int | float
-    max: int | float
-    options: List[str]
-
-
-class UI_Console(TypedDict):
-    open: bool
-    lines: List[str]
-    line: str
-
-
-class UI_Item(TypedDict, total=False):
-    type: Literal['text', 'button', 'checkbox', 'slider', 'drag', 'input', 'combo', 'image', 'header', 'tree', 'table', 'line', 'separator']
-    content: List[UI_Item]
-    open: bool
-    text: str
-    variable: str
-    speed: float
-    step: float
-    format: str
-    width: float
-    height: float
-    columns: int
-    texture: str
-    click: str
-
-
-class UI_Sidebar(TypedDict):
-    open: bool
-    content: List[UI_Item]
-
-
-class UI(TypedDict):
-    callbacks: Dict[str, Callable]
-    variables: Dict[str, UI_Variable]
-    console: UI_Console
-    sidebar: UI_Sidebar
-    tooltip: str | None
-
-
 class MainWindow:
     size: Tuple[int, int]
     ratio: float
     mouse: Tuple[int, int]
     mouse_wheel: int
     text: str
-    ui: UI
+    log: io.StringIO
+    config: Dict[str, Any]
 
     def key_pressed(self, key: Key) -> bool: ...
     def key_released(self, key: Key) -> bool: ...
     def key_down(self, key: Key) -> bool: ...
     def key_up(self, key: Key) -> bool: ...
+    def image(self, name: str, texture: int, position: Tuple[float, float], size: Tuple[float, float], flip: bool = False) -> None: ...
+    def slider(self, name: str, value: float = 0.0, min: float = -1.0, max: float = 1.0, format: str = '%.2f') -> None: ...
+    def increment(self, name: str, value: int = 0, min: int = 0, max: int = 0) -> None: ...
+    def checkbox(self, name: str, value: bool = False) -> None: ...
+    def combo(self, name: str, value: str, options: List[str]) -> None: ...
+    def button(self, name: str, click: Callable) -> None: ...
+    def tooltip(self, text: str) -> None: ...
     def update(self) -> None: ...
-    def demo(self) -> None: ...
 
 
-def main_window(size: Tuple[int, int] = (1800, 960), title: str = 'Mollia Window') -> MainWindow: ...
-def update() -> None: ...
+def main_window(size: Tuple[int, int] = ..., title: str = 'Mollia Window') -> MainWindow: ...
 
 
 wnd: MainWindow

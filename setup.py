@@ -48,10 +48,13 @@ ext = Extension(
 )
 
 setup(
-    name='mollia_window',
-    version='2.3.0',
+    name='mollia-window',
+    version='2.4.0',
     author='Mollia Zrt.',
     license='MIT',
     ext_modules=[ext],
-    data_files=[('.', ['mollia_window.pyi', 'SDL2.dll'])],
+    packages=['mollia_window-stubs'],
+    package_data={'mollia_window-stubs': ['__init__.pyi']},
+    data_files=[('.', ['SDL2.dll'])],
+    include_package_data=True,
 )

@@ -8,7 +8,7 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 
-#include <GL/gl.h>
+PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
 
 struct MainWindow {
     PyObject_HEAD
@@ -17,12 +17,15 @@ struct MainWindow {
     PyObject * mouse;
     PyObject * mouse_wheel;
     PyObject * text;
-    PyObject * ui;
+    PyObject * config;
+    PyObject * tooltip;
+    PyObject * log;
 };
 
 PyTypeObject * MainWindow_type;
 
 SDL_Window * window;
+float sidebar_width;
 bool closed;
 int mouse_x;
 int mouse_y;
@@ -31,17 +34,21 @@ bool key_down[280];
 bool prev_key_down[280];
 char text[1024];
 
+PyObject * image_list;
+PyObject * config_list;
+
 PyObject * keys;
 PyObject * empty_str;
 
 MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwargs) {
-    const char * keywords[] = {"size", "title", NULL};
+    const char * keywords[] = {"size", "sidebar", "title", NULL};
 
-    int width = 1800;
-    int height = 960;
+    int width = 0;
+    int height = 0;
+    int sidebar = 400;
     const char * title = "Mollia Window";
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|(II)s", (char **)keywords, &width, &height, &title)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|(II)Is", (char **)keywords, &width, &height, &sidebar, &title)) {
         return NULL;
     }
 
@@ -60,78 +67,46 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
+    if (!width && !height) {
+        SDL_DisplayMode display_mode;
+        SDL_GetCurrentDisplayMode(0, &display_mode);
+        width = display_mode.w - 120;
+        height = display_mode.h - 120;
+    }
+
     int window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI;
     window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, window_flags);
     SDL_GLContext gl_context = SDL_GL_CreateContext(window);
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1);
 
+    glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC)SDL_GL_GetProcAddress("glBindFramebuffer");
+
+    #define B 0x00, 0x00, 0x00, 0xff
+    #define W 0xff, 0xff, 0xff, 0xff
+    #define R 0xd4, 0x00, 0x00, 0xff
     unsigned char pixels[1024] = {
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x00,
-        0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff, 0xd4, 0x00, 0x00, 0xff,
-        0xd4, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
-        0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0xff,
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
+        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
+        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
+        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
+        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
+        B, W, W, W, B, B, W, W, W, W, W, W, W, W, W, B,
+        B, W, W, B, B, B, W, W, W, W, W, W, W, W, W, B,
+        B, W, B, B, B, B, W, W, R, R, R, R, R, W, W, B,
+        B, B, B, W, B, B, W, R, R, R, R, R, R, R, W, B,
+        B, B, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
+        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
+        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
+        B, W, W, W, B, B, W, R, R, R, R, R, R, R, W, B,
+        B, W, W, W, B, B, W, W, R, R, R, R, R, W, W, B,
+        B, W, W, W, W, W, W, W, W, W, W, W, W, W, W, B,
+        B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B,
     };
+    #undef B
+    #undef W
+    #undef R
+
     SDL_Surface * surface = SDL_CreateRGBSurfaceFrom(pixels, 16, 16, 32, 64, 0xff, 0xff00, 0xff0000, 0xff000000);
     SDL_SetWindowIcon(window, surface);
     SDL_FreeSurface(surface);
@@ -154,23 +129,25 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     ImGui::NewFrame();
 
     MainWindow * res = PyObject_New(MainWindow, MainWindow_type);
-    res->size = Py_BuildValue("(II)", width, height);
-    res->ratio = PyFloat_FromDouble((double)width / (double)height);
+    res->size = Py_BuildValue("(II)", width - sidebar, height);
+    res->ratio = PyFloat_FromDouble((double)(width - sidebar) / (double)height);
     res->mouse = Py_BuildValue("(ii)", 0, 0);
     res->mouse_wheel = PyLong_FromLong(0);
-    res->ui = Py_BuildValue("{s{}s{}s{sOs[]ss}s{sOs[]}sO}", "callbacks", "variables", "console", "open", Py_False, "lines", "line", "", "sidebar", "open", Py_False, "content", "tooltip", Py_None);
 
     Py_INCREF(empty_str);
     res->text = empty_str;
+
+    PyObject * pyio = PyImport_ImportModule("io");
+    res->log = PyObject_CallMethod(pyio, "StringIO", NULL);
+
+    res->tooltip = NULL;
+    res->config = PyDict_New();
+    sidebar_width = (float)sidebar;
 
     Py_INCREF(res);
     PyModule_AddObject(self, "wnd", (PyObject *)res);
 
     return res;
-}
-
-PyObject * meth_update(PyObject * self) {
-    return PyObject_CallMethod(PyObject_GetAttrString(self, "wnd"), "update", NULL);
 }
 
 int sdl_key(int key) {
@@ -283,205 +260,6 @@ int sdl_key(int key) {
     return 0;
 }
 
-void render_content(PyObject * root, PyObject * callbacks, PyObject * variables, int prefix = 0) {
-    PyObject * content = PyDict_GetItemString(root, "content");
-    for (int i = 0; i < (int)PyList_Size(content); ++i) {
-        switch (prefix) {
-            case 1: ImGui::TableNextColumn(); break;
-            case 2: if (i) ImGui::SameLine(); break;
-        }
-        PyObject * obj = PyList_GetItem(content, i);
-        PyObject * type = PyDict_GetItemString(obj, "type");
-        if (!PyUnicode_CompareWithASCIIString(type, "text")) {
-            ImGui::TextUnformatted(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")));
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "button")) {
-            if (ImGui::Button(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")))) {
-                PyObject * click = PyDict_GetItemString(obj, "click");
-                PyObject * callback = PyDict_GetItem(callbacks, click);
-                Py_XDECREF(PyObject_CallFunction(callback, NULL));
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "checkbox")) {
-            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
-            bool value = PyObject_IsTrue(PyDict_GetItemString(variable, "value"));
-            if (ImGui::Checkbox(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), &value)) {
-                PyDict_SetItemString(variable, "value", value ? Py_True : Py_False);
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "slider")) {
-            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
-            PyObject * variable_type = PyDict_GetItemString(variable, "type");
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "float")) {
-                double value = PyFloat_AsDouble(PyDict_GetItemString(variable, "value"));
-                double min_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "min"));
-                double max_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "max"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::SliderScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_Double, &value, &min_value, &max_value, format)) {
-                    PyObject * new_value = PyFloat_FromDouble(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "int")) {
-                int value = PyLong_AsLong(PyDict_GetItemString(variable, "value"));
-                int min_value = PyLong_AsLong(PyDict_GetItemString(variable, "min"));
-                int max_value = PyLong_AsLong(PyDict_GetItemString(variable, "max"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::SliderScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_S32, &value, &min_value, &max_value, format)) {
-                    PyObject * new_value = PyLong_FromLong(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "drag")) {
-            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
-            PyObject * variable_type = PyDict_GetItemString(variable, "type");
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "float")) {
-                double value = PyFloat_AsDouble(PyDict_GetItemString(variable, "value"));
-                double min_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "min"));
-                double max_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "max"));
-                float speed = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "speed"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::DragScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_Double, &value, speed, &min_value, &max_value, format)) {
-                    PyObject * new_value = PyFloat_FromDouble(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "int")) {
-                int value = PyLong_AsLong(PyDict_GetItemString(variable, "value"));
-                int min_value = PyLong_AsLong(PyDict_GetItemString(variable, "min"));
-                int max_value = PyLong_AsLong(PyDict_GetItemString(variable, "max"));
-                float speed = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "speed"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::DragScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_S32, &value, speed, &min_value, &max_value, format)) {
-                    PyObject * new_value = PyLong_FromLong(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "input")) {
-            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
-            PyObject * variable_type = PyDict_GetItemString(variable, "type");
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "float")) {
-                double value = PyFloat_AsDouble(PyDict_GetItemString(variable, "value"));
-                double min_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "min"));
-                double max_value = PyFloat_AsDouble(PyDict_GetItemString(variable, "max"));
-                double step = PyFloat_AsDouble(PyDict_GetItemString(obj, "step"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::InputScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_Double, &value, &step, NULL, format)) {
-                    value = value > min_value ? value : min_value;
-                    value = value < max_value ? value : max_value;
-                    PyObject * new_value = PyFloat_FromDouble(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-            if (!PyUnicode_CompareWithASCIIString(variable_type, "int")) {
-                int value = PyLong_AsLong(PyDict_GetItemString(variable, "value"));
-                int min_value = PyLong_AsLong(PyDict_GetItemString(variable, "min"));
-                int max_value = PyLong_AsLong(PyDict_GetItemString(variable, "max"));
-                int step = PyLong_AsLong(PyDict_GetItemString(obj, "step"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::InputScalar(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), ImGuiDataType_S32, &value, &step, NULL, format)) {
-                    value = value > min_value ? value : min_value;
-                    value = value < max_value ? value : max_value;
-                    PyObject * new_value = PyLong_FromLong(value);
-                    PyDict_SetItemString(variable, "value", new_value);
-                    Py_DECREF(new_value);
-                }
-                continue;
-            }
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "combo")) {
-            PyObject * variable = PyDict_GetItem(variables, PyDict_GetItemString(obj, "variable"));
-            PyObject * value = PyDict_GetItemString(variable, "value");
-            PyObject * options = PyDict_GetItemString(variable, "options");
-            int index = (int)PySequence_Index(options, value);
-            int num_items = (int)PyList_Size(options);
-            const char * items[256];
-            for (int i = 0; i < num_items; ++i) {
-                items[i] = PyUnicode_AsUTF8(PyList_GetItem(options, i));
-            }
-            if (ImGui::Combo(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")), &index, items, num_items)) {
-                PyDict_SetItemString(variable, "value", PyList_GetItem(options, index));
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "image")) {
-            PyObject * callback = PyDict_GetItem(callbacks, PyDict_GetItemString(obj, "texture"));
-            int texture = PyLong_AsLong(PyObject_CallFunction(callback, NULL));
-            float width = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "width"));
-            float height = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "height"));
-            bool flip = PyObject_IsTrue(PyDict_GetItemString(obj, "flip"));
-            int last_texture = 0;
-            glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glBindTexture(GL_TEXTURE_2D, last_texture);
-            if (flip) {
-                ImGui::Image((ImTextureID)(long long)texture, {width, height}, {0.0f, 1.0f}, {1.0f, 0.0f});
-            } else {
-                ImGui::Image((ImTextureID)(long long)texture, {width, height});
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "header")) {
-            bool open = PyObject_IsTrue(PyDict_GetItemString(obj, "open"));
-            ImGui::SetNextItemOpen(open);
-            bool next_open = ImGui::CollapsingHeader(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")));
-            if (next_open) {
-                render_content(obj, callbacks, variables);
-            }
-            if (next_open != open) {
-                PyDict_SetItemString(obj, "open", next_open ? Py_True : Py_False);
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "tree")) {
-            bool open = PyObject_IsTrue(PyDict_GetItemString(obj, "open"));
-            ImGui::SetNextItemOpen(open);
-            bool next_open = ImGui::TreeNode(PyUnicode_AsUTF8(PyDict_GetItemString(obj, "text")));
-            if (next_open) {
-                render_content(obj, callbacks, variables);
-                ImGui::TreePop();
-            }
-            if (next_open != open) {
-                PyDict_SetItemString(obj, "open", next_open ? Py_True : Py_False);
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "table")) {
-            int columns = PyLong_AsLong(PyDict_GetItemString(obj, "columns"));
-            if (ImGui::BeginTable("table", columns)) {
-                render_content(obj, callbacks, variables, 1);
-                ImGui::EndTable();
-            }
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "line")) {
-            render_content(obj, callbacks, variables, 2);
-            continue;
-        }
-        if (!PyUnicode_CompareWithASCIIString(type, "separator")) {
-            ImGui::Separator();
-            continue;
-        }
-    }
-}
-
 PyObject * MainWindow_meth_update(MainWindow * self) {
     if (closed) {
         Py_RETURN_FALSE;
@@ -489,85 +267,126 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
 
     ImGuiIO & io = ImGui::GetIO();
 
-    PyObject * callbacks = PyDict_GetItemString(self->ui, "callbacks");
-    PyObject * variables = PyDict_GetItemString(self->ui, "variables");
-    PyObject * console_state = PyDict_GetItemString(self->ui, "console");
-    bool console_open = PyObject_IsTrue(PyDict_GetItemString(console_state, "open"));
-    ImGui::SetNextWindowPos({0.0f, 0.0f});
-    ImGui::SetNextWindowSize({io.DisplaySize.x - 400.0f, 200.0f});
-    ImGui::SetNextWindowCollapsed(!console_open);
-    bool next_console_open = ImGui::Begin("Console", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    if (next_console_open) {
-        const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
-        ImGui::BeginChild("scrolling", ImVec2(0.0f, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar);
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 1.0f));
-        PyObject * lines = PyDict_GetItemString(console_state, "lines");
-        for (int i = 0; i < (int)PyList_Size(lines); ++i) {
-            PyObject * line = PyList_GetItem(lines, i);
-            Py_ssize_t line_length = 0;
-            const char * line_str = PyUnicode_AsUTF8AndSize(line, &line_length);
-            ImGui::TextUnformatted(line_str, line_str + line_length);
+    int image_count = (int)PyList_Size(image_list);
+    for (int i = 0; i < image_count; ++i) {
+        PyObject * obj = PyList_GET_ITEM(image_list, i);
+        PyObject * name = PyDict_GetItemString(obj, "name");
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {2.0f, 2.0f});
+        if (ImGui::Begin(PyUnicode_AsUTF8(name), NULL, ImGuiWindowFlags_NoResize)) {
+            int texture = PyLong_AsLong(PyDict_GetItemString(obj, "texture"));
+            bool flip = PyObject_IsTrue(PyDict_GetItemString(obj, "flip"));
+            float x = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "x"));
+            float y = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "y"));
+            float width = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "width"));
+            float height = (float)PyFloat_AsDouble(PyDict_GetItemString(obj, "height"));
+            ImGui::SetWindowPos({x, y}, ImGuiCond_Once);
+            if (flip) {
+                ImGui::Image((ImTextureID)(long long)texture, {width, height}, {0.0f, 1.0f}, {1.0f, 0.0f});
+            } else {
+                ImGui::Image((ImTextureID)(long long)texture, {width, height});
+            }
+            ImGui::End();
         }
         ImGui::PopStyleVar();
+    }
 
-        if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
-            ImGui::SetScrollHereY(1.0f);
-        }
-        ImGui::EndChild();
-        ImGui::Separator();
-        char input_buffer[256];
-        PyObject * line = PyDict_GetItemString(console_state, "line");
-        strcpy(input_buffer, PyUnicode_AsUTF8(line));
-        bool reclaim_focus = false;
-        ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        if (ImGui::InputText("##Input", input_buffer, IM_ARRAYSIZE(input_buffer), input_text_flags, NULL, NULL)) {
-            reclaim_focus = true;
-            PyObject * callback = PyDict_GetItemString(callbacks, "console_execute");
-            Py_XDECREF(PyObject_CallFunction(callback, "(s)", input_buffer));
-            PyDict_SetItemString(console_state, "line", empty_str);
-        } else if (PyUnicode_CompareWithASCIIString(line, input_buffer)) {
-            PyObject * new_line = PyUnicode_FromString(input_buffer);
-            PyDict_SetItemString(console_state, "line", new_line);
-            Py_DECREF(new_line);
-        }
-
-        ImGui::SetItemDefaultFocus();
-        if (reclaim_focus) {
-            ImGui::SetKeyboardFocusHere(-1);
+    ImGui::SetNextWindowPos({io.DisplaySize.x - sidebar_width, 0.0f});
+    ImGui::SetNextWindowSize({sidebar_width, io.DisplaySize.y});
+    ImGui::Begin("Sidebar", NULL, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse);
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    if (ImGui::CollapsingHeader("Config")) {
+        int count = (int)PyList_Size(config_list);
+        for (int i = 0; i < count; ++i) {
+            PyObject * obj = PyList_GET_ITEM(config_list, i);
+            PyObject * name = PyDict_GetItemString(obj, "name");
+            PyObject * type = PyDict_GetItemString(obj, "type");
+            if (!PyUnicode_CompareWithASCIIString(type, "slider")) {
+                double value = PyFloat_AsDouble(PyDict_GetItem(self->config, name));
+                double min_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "min"));
+                double max_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "max"));
+                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
+                if (ImGui::SliderScalar(PyUnicode_AsUTF8(name), ImGuiDataType_Double, &value, &min_value, &max_value, format)) {
+                    value = value > min_value ? value : min_value;
+                    value = value < max_value ? value : max_value;
+                    PyObject * new_value = PyFloat_FromDouble(value);
+                    PyDict_SetItem(self->config, name, new_value);
+                    Py_DECREF(new_value);
+                }
+            }
+            if (!PyUnicode_CompareWithASCIIString(type, "increment")) {
+                int value = PyLong_AsLong(PyDict_GetItem(self->config, name));
+                int min_value = PyLong_AsLong(PyDict_GetItemString(obj, "min"));
+                int max_value = PyLong_AsLong(PyDict_GetItemString(obj, "max"));
+                int step = PyLong_AsLong(PyDict_GetItemString(obj, "step"));
+                if (ImGui::InputScalar(PyUnicode_AsUTF8(name), ImGuiDataType_S32, &value, &step, NULL, NULL)) {
+                    value = value > min_value ? value : min_value;
+                    value = value < max_value ? value : max_value;
+                    PyObject * new_value = PyLong_FromLong(value);
+                    PyDict_SetItem(self->config, name, new_value);
+                    Py_DECREF(new_value);
+                }
+            }
+            if (!PyUnicode_CompareWithASCIIString(type, "checkbox")) {
+                bool value = PyObject_IsTrue(PyDict_GetItem(self->config, name));
+                if (ImGui::Checkbox(PyUnicode_AsUTF8(name), &value)) {
+                    PyDict_SetItem(self->config, name, value ? Py_True : Py_False);
+                }
+            }
+            if (!PyUnicode_CompareWithASCIIString(type, "combo")) {
+                PyObject * value = PyDict_GetItem(self->config, name);
+                PyObject * options = PyDict_GetItemString(obj, "options");
+                int index = (int)PySequence_Index(options, value);
+                int num_items = (int)PyList_Size(options);
+                const char * items[256];
+                for (int i = 0; i < num_items; ++i) {
+                    items[i] = PyUnicode_AsUTF8(PyList_GetItem(options, i));
+                }
+                if (ImGui::Combo(PyUnicode_AsUTF8(name), &index, items, num_items)) {
+                    PyDict_SetItem(self->config, name, PyList_GetItem(options, index));
+                }
+            }
+            if (!PyUnicode_CompareWithASCIIString(type, "button")) {
+                if (ImGui::Button(PyUnicode_AsUTF8(name))) {
+                    PyObject * click = PyDict_GetItemString(obj, "click");
+                    PyObject * res = PyObject_CallFunction(click, NULL);
+                    if (!res) {
+                        return NULL;
+                    }
+                    Py_DECREF(res);
+                }
+            }
         }
     }
-    ImGui::End();
 
-    PyObject * sidebar_state = PyDict_GetItemString(self->ui, "sidebar");
-    bool sidebar_open = PyObject_IsTrue(PyDict_GetItemString(sidebar_state, "open"));
-    ImGui::SetNextWindowPos({io.DisplaySize.x - 400.0f, 0.0f});
-    ImGui::SetNextWindowSize({400.0f, io.DisplaySize.y});
-    ImGui::SetNextWindowCollapsed(!sidebar_open);
-    bool next_sidebar_open = ImGui::Begin("Sidebar", NULL, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    if (next_sidebar_open) {
-        render_content(sidebar_state, callbacks, variables);
+    Py_DECREF(PyObject_CallMethod(self->log, "truncate", NULL));
+
+    ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+    bool log_open = ImGui::CollapsingHeader("Log");
+    if (log_open) {
+        Py_ssize_t size = 0;
+        PyObject * text = PyObject_CallMethod(self->log, "getvalue", NULL);
+        const char * ptr = PyUnicode_AsUTF8AndSize(text, &size);
+        ImGui::TextUnformatted(ptr, ptr + size);
+        Py_DECREF(text);
     }
+    Py_DECREF(PyObject_CallMethod(self->log, "seek", "i", 0));
     ImGui::End();
 
-    PyObject * tooltip = PyDict_GetItemString(self->ui, "tooltip");
-    if (tooltip != Py_None) {
+    if (self->tooltip) {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
-        ImGui::TextUnformatted(PyUnicode_AsUTF8(tooltip));
+        ImGui::TextUnformatted(PyUnicode_AsUTF8(self->tooltip));
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
-    }
-
-    if (next_console_open != console_open) {
-        PyDict_SetItemString(console_state, "open", next_console_open ? Py_True : Py_False);
-    }
-
-    if (next_sidebar_open != sidebar_open) {
-        PyDict_SetItemString(sidebar_state, "open", next_sidebar_open ? Py_True : Py_False);
+        Py_DECREF(self->tooltip);
+        self->tooltip = NULL;
     }
 
     ImGui::Render();
+
+    int draw_fbo = 0;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_fbo);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
     if (glIsEnabled(0x8DB9)) {
         glDisable(0x8DB9);
@@ -578,6 +397,11 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     }
 
     SDL_GL_SwapWindow(window);
+
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_fbo);
+
     memcpy(prev_key_down, key_down, sizeof(key_down));
     text[0] = 0;
 
@@ -702,8 +526,139 @@ PyObject * MainWindow_meth_key_up(MainWindow * self, PyObject * arg) {
     return NULL;
 }
 
-PyObject * MainWindow_meth_demo(MainWindow * self) {
-    ImGui::ShowDemoWindow(NULL);
+PyObject * MainWindow_meth_image(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "texture", "position", "size", "flip", NULL};
+
+    const char * name;
+    int texture;
+    float width, height;
+    float x = 0.0f;
+    float y = 0.0f;
+    int flip = false;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "si(ff)(ff)|$p", keywords, &name, &texture, &x, &y, &width, &height, &flip)) {
+        return NULL;
+    }
+
+    PyList_Append(image_list, Py_BuildValue(
+        "{sssisfsfsfsfsO}",
+        "name", name,
+        "texture", texture,
+        "x", x,
+        "y", y,
+        "width", width,
+        "height", height,
+        "flip", flip ? Py_True : Py_False
+    ));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_slider(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "value", "min", "max", "format", NULL};
+
+    const char * name;
+    double value = 0.0;
+    double min_value = -1.0;
+    double max_value = 1.0;
+    const char * format = "%.2f";
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|d$dds", keywords, &name, &value, &min_value, &max_value, &format)) {
+        return NULL;
+    }
+
+    PyDict_SetItemString(self->config, name, PyFloat_FromDouble(value));
+    PyList_Append(config_list, Py_BuildValue("{sssssdsdss}", "type", "slider", "name", name, "min", min_value, "max", max_value, "format", format));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_increment(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "value", "min", "max", "step", NULL};
+
+    const char * name;
+    int value = 0;
+    int min_value = 0;
+    int max_value = 100;
+    int step = 1;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|i$iii", keywords, &name, &value, &min_value, &max_value, &step)) {
+        return NULL;
+    }
+
+    PyDict_SetItemString(self->config, name, PyLong_FromLong(value));
+    PyList_Append(config_list, Py_BuildValue("{sssssisisi}", "type", "increment", "name", name, "min", min_value, "max", max_value, "step", step));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_checkbox(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "value", NULL};
+
+    const char * name;
+    int value = false;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s|p", keywords, &name, &value)) {
+        return NULL;
+    }
+
+    PyDict_SetItemString(self->config, name, value ? Py_True : Py_False);
+    PyList_Append(config_list, Py_BuildValue("{ssss}", "type", "checkbox", "name", name));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_combo(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "value", "options", NULL};
+
+    const char * name;
+    PyObject * value;
+    PyObject * options;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sOO", keywords, &name, &value, &options)) {
+        return NULL;
+    }
+
+    if (!PyUnicode_CheckExact(value) || !PyList_CheckExact(options)) {
+        return NULL;
+    }
+
+    for (int i = 0; i < (int)PyList_Size(options); ++i) {
+        if (!PyUnicode_CheckExact(PyList_GetItem(options, i))) {
+            return NULL;
+        }
+    }
+
+    PyDict_SetItemString(self->config, name, value);
+    PyList_Append(config_list, Py_BuildValue("{sssssO}", "type", "combo", "name", name, "options", options));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_button(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", "click", NULL};
+
+    const char * name;
+    PyObject * click;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "sO", keywords, &name, &click)) {
+        return NULL;
+    }
+
+    if (!PyCallable_Check(click)) {
+        return NULL;
+    }
+
+    PyList_Append(config_list, Py_BuildValue("{sssssO}", "type", "button", "name", name, "click", click));
+    Py_RETURN_NONE;
+}
+
+PyObject * MainWindow_meth_tooltip(MainWindow * self, PyObject * arg) {
+    if (!PyUnicode_CheckExact(arg)) {
+        return NULL;
+    }
+    if (!PyUnicode_GetLength(arg)) {
+        self->tooltip = NULL;
+        Py_RETURN_NONE;
+    }
+    Py_INCREF(arg);
+    Py_XDECREF(self->tooltip);
+    self->tooltip = arg;
     Py_RETURN_NONE;
 }
 
@@ -717,7 +672,13 @@ PyMethodDef MainWindow_methods[] = {
     {"key_released", (PyCFunction)MainWindow_meth_key_released, METH_O, NULL},
     {"key_down", (PyCFunction)MainWindow_meth_key_down, METH_O, NULL},
     {"key_up", (PyCFunction)MainWindow_meth_key_up, METH_O, NULL},
-    {"demo", (PyCFunction)MainWindow_meth_demo, METH_NOARGS, NULL},
+    {"image", (PyCFunction)MainWindow_meth_image, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"slider", (PyCFunction)MainWindow_meth_slider, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"increment", (PyCFunction)MainWindow_meth_increment, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"checkbox", (PyCFunction)MainWindow_meth_checkbox, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"combo", (PyCFunction)MainWindow_meth_combo, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"button", (PyCFunction)MainWindow_meth_button, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"tooltip", (PyCFunction)MainWindow_meth_tooltip, METH_O, NULL},
     {},
 };
 
@@ -727,7 +688,8 @@ PyMemberDef MainWindow_members[] = {
     {"mouse", T_OBJECT, offsetof(MainWindow, mouse), READONLY, NULL},
     {"mouse_wheel", T_OBJECT, offsetof(MainWindow, mouse_wheel), READONLY, NULL},
     {"text", T_OBJECT, offsetof(MainWindow, text), READONLY, NULL},
-    {"ui", T_OBJECT, offsetof(MainWindow, ui), READONLY, NULL},
+    {"log", T_OBJECT, offsetof(MainWindow, log), READONLY, NULL},
+    {"config", T_OBJECT, offsetof(MainWindow, config), READONLY, NULL},
     {},
 };
 
@@ -742,7 +704,6 @@ PyType_Spec MainWindow_spec = {"mollia_window.MainWindow", sizeof(MainWindow), 0
 
 PyMethodDef module_methods[] = {
     {"main_window", (PyCFunction)meth_main_window, METH_VARARGS | METH_KEYWORDS, NULL},
-    {"update", (PyCFunction)meth_update, METH_NOARGS, NULL},
     {},
 };
 
@@ -761,6 +722,9 @@ extern "C" PyObject * PyInit_mollia_window() {
 
     Py_INCREF(MainWindow_type);
     PyModule_AddObject(module, "MainWindow", (PyObject *)MainWindow_type);
+
+    image_list = PyList_New(0);
+    config_list = PyList_New(0);
 
     empty_str = PyUnicode_FromString("");
     keys = PyDict_New();
