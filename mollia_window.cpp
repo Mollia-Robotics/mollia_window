@@ -349,6 +349,9 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
                 PyObject * value = PyDict_GetItem(self->config, name);
                 PyObject * options = PyDict_GetItemString(obj, "options");
                 int index = (int)PySequence_Index(options, value);
+                if (index < 0) {
+                    return NULL;
+                }
                 int num_items = (int)PyList_Size(options);
                 const char * items[256];
                 for (int i = 0; i < num_items; ++i) {
