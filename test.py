@@ -21,6 +21,8 @@ wnd.slider('beta')
 wnd.increment('gamma')
 wnd.increment('delta')
 
+wnd.group('Advanced')
+
 wnd.checkbox('wireframe')
 wnd.combo('number', 'two', ['one', 'two', 'three'])
 wnd.button('btn', lambda: print('yes'))

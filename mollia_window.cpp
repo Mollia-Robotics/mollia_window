@@ -307,69 +307,74 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     ImGui::SetNextWindowSize({sidebar_width, io.DisplaySize.y});
     ImGui::Begin("Sidebar", NULL, ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse);
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    if (ImGui::CollapsingHeader("Config")) {
-        int count = (int)PyList_Size(config_list);
-        for (int i = 0; i < count; ++i) {
-            PyObject * obj = PyList_GET_ITEM(config_list, i);
-            PyObject * name = PyDict_GetItemString(obj, "name");
-            PyObject * type = PyDict_GetItemString(obj, "type");
-            if (!PyUnicode_CompareWithASCIIString(type, "slider")) {
-                double value = PyFloat_AsDouble(PyDict_GetItem(self->config, name));
-                double min_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "min"));
-                double max_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "max"));
-                const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
-                if (ImGui::SliderScalar(PyUnicode_AsUTF8(name), ImGuiDataType_Double, &value, &min_value, &max_value, format)) {
-                    value = value > min_value ? value : min_value;
-                    value = value < max_value ? value : max_value;
-                    PyObject * new_value = PyFloat_FromDouble(value);
-                    PyDict_SetItem(self->config, name, new_value);
-                    Py_DECREF(new_value);
-                }
+    bool config_open = ImGui::CollapsingHeader("Config");
+    int config_count = (int)PyList_Size(config_list);
+    for (int i = 0; i < config_count; ++i) {
+        PyObject * obj = PyList_GET_ITEM(config_list, i);
+        PyObject * name = PyDict_GetItemString(obj, "name");
+        PyObject * type = PyDict_GetItemString(obj, "type");
+        if (!PyUnicode_CompareWithASCIIString(type, "group")) {
+            config_open = ImGui::CollapsingHeader(PyUnicode_AsUTF8(name));
+        }
+        if (!config_open) {
+            continue;
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "slider")) {
+            double value = PyFloat_AsDouble(PyDict_GetItem(self->config, name));
+            double min_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "min"));
+            double max_value = PyFloat_AsDouble(PyDict_GetItemString(obj, "max"));
+            const char * format = PyUnicode_AsUTF8(PyDict_GetItemString(obj, "format"));
+            if (ImGui::SliderScalar(PyUnicode_AsUTF8(name), ImGuiDataType_Double, &value, &min_value, &max_value, format)) {
+                value = value > min_value ? value : min_value;
+                value = value < max_value ? value : max_value;
+                PyObject * new_value = PyFloat_FromDouble(value);
+                PyDict_SetItem(self->config, name, new_value);
+                Py_DECREF(new_value);
             }
-            if (!PyUnicode_CompareWithASCIIString(type, "increment")) {
-                int value = PyLong_AsLong(PyDict_GetItem(self->config, name));
-                int min_value = PyLong_AsLong(PyDict_GetItemString(obj, "min"));
-                int max_value = PyLong_AsLong(PyDict_GetItemString(obj, "max"));
-                int step = PyLong_AsLong(PyDict_GetItemString(obj, "step"));
-                if (ImGui::InputScalar(PyUnicode_AsUTF8(name), ImGuiDataType_S32, &value, &step, NULL, NULL)) {
-                    value = value > min_value ? value : min_value;
-                    value = value < max_value ? value : max_value;
-                    PyObject * new_value = PyLong_FromLong(value);
-                    PyDict_SetItem(self->config, name, new_value);
-                    Py_DECREF(new_value);
-                }
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "increment")) {
+            int value = PyLong_AsLong(PyDict_GetItem(self->config, name));
+            int min_value = PyLong_AsLong(PyDict_GetItemString(obj, "min"));
+            int max_value = PyLong_AsLong(PyDict_GetItemString(obj, "max"));
+            int step = PyLong_AsLong(PyDict_GetItemString(obj, "step"));
+            if (ImGui::InputScalar(PyUnicode_AsUTF8(name), ImGuiDataType_S32, &value, &step, NULL, NULL)) {
+                value = value > min_value ? value : min_value;
+                value = value < max_value ? value : max_value;
+                PyObject * new_value = PyLong_FromLong(value);
+                PyDict_SetItem(self->config, name, new_value);
+                Py_DECREF(new_value);
             }
-            if (!PyUnicode_CompareWithASCIIString(type, "checkbox")) {
-                bool value = PyObject_IsTrue(PyDict_GetItem(self->config, name));
-                if (ImGui::Checkbox(PyUnicode_AsUTF8(name), &value)) {
-                    PyDict_SetItem(self->config, name, value ? Py_True : Py_False);
-                }
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "checkbox")) {
+            bool value = PyObject_IsTrue(PyDict_GetItem(self->config, name));
+            if (ImGui::Checkbox(PyUnicode_AsUTF8(name), &value)) {
+                PyDict_SetItem(self->config, name, value ? Py_True : Py_False);
             }
-            if (!PyUnicode_CompareWithASCIIString(type, "combo")) {
-                PyObject * value = PyDict_GetItem(self->config, name);
-                PyObject * options = PyDict_GetItemString(obj, "options");
-                int index = (int)PySequence_Index(options, value);
-                if (index < 0) {
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "combo")) {
+            PyObject * value = PyDict_GetItem(self->config, name);
+            PyObject * options = PyDict_GetItemString(obj, "options");
+            int index = (int)PySequence_Index(options, value);
+            if (index < 0) {
+                return NULL;
+            }
+            int num_items = (int)PyList_Size(options);
+            const char * items[256];
+            for (int i = 0; i < num_items; ++i) {
+                items[i] = PyUnicode_AsUTF8(PyList_GetItem(options, i));
+            }
+            if (ImGui::Combo(PyUnicode_AsUTF8(name), &index, items, num_items)) {
+                PyDict_SetItem(self->config, name, PyList_GetItem(options, index));
+            }
+        }
+        if (!PyUnicode_CompareWithASCIIString(type, "button")) {
+            if (ImGui::Button(PyUnicode_AsUTF8(name))) {
+                PyObject * click = PyDict_GetItemString(obj, "click");
+                PyObject * res = PyObject_CallFunction(click, NULL);
+                if (!res) {
                     return NULL;
                 }
-                int num_items = (int)PyList_Size(options);
-                const char * items[256];
-                for (int i = 0; i < num_items; ++i) {
-                    items[i] = PyUnicode_AsUTF8(PyList_GetItem(options, i));
-                }
-                if (ImGui::Combo(PyUnicode_AsUTF8(name), &index, items, num_items)) {
-                    PyDict_SetItem(self->config, name, PyList_GetItem(options, index));
-                }
-            }
-            if (!PyUnicode_CompareWithASCIIString(type, "button")) {
-                if (ImGui::Button(PyUnicode_AsUTF8(name))) {
-                    PyObject * click = PyDict_GetItemString(obj, "click");
-                    PyObject * res = PyObject_CallFunction(click, NULL);
-                    if (!res) {
-                        return NULL;
-                    }
-                    Py_DECREF(res);
-                }
+                Py_DECREF(res);
             }
         }
     }
@@ -377,8 +382,7 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     Py_DECREF(PyObject_CallMethod(self->log, "truncate", NULL));
 
     ImGui::SetNextItemOpen(true, ImGuiCond_Once);
-    bool log_open = ImGui::CollapsingHeader("Log");
-    if (log_open) {
+    if (ImGui::CollapsingHeader("Log")) {
         Py_ssize_t size = 0;
         PyObject * text = PyObject_CallMethod(self->log, "getvalue", NULL);
         const char * ptr = PyUnicode_AsUTF8AndSize(text, &size);
@@ -664,6 +668,19 @@ PyObject * MainWindow_meth_button(MainWindow * self, PyObject * args, PyObject *
     Py_RETURN_NONE;
 }
 
+PyObject * MainWindow_meth_group(MainWindow * self, PyObject * args, PyObject * kwargs) {
+    static char * keywords[] = {"name", NULL};
+
+    const char * name;
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s", keywords, &name)) {
+        return NULL;
+    }
+
+    PyList_Append(config_list, Py_BuildValue("{ssss}", "type", "group", "name", name));
+    Py_RETURN_NONE;
+}
+
 PyObject * MainWindow_meth_tooltip(MainWindow * self, PyObject * arg) {
     if (!PyUnicode_CheckExact(arg)) {
         return NULL;
@@ -694,6 +711,7 @@ PyMethodDef MainWindow_methods[] = {
     {"checkbox", (PyCFunction)MainWindow_meth_checkbox, METH_VARARGS | METH_KEYWORDS, NULL},
     {"combo", (PyCFunction)MainWindow_meth_combo, METH_VARARGS | METH_KEYWORDS, NULL},
     {"button", (PyCFunction)MainWindow_meth_button, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"group", (PyCFunction)MainWindow_meth_group, METH_VARARGS | METH_KEYWORDS, NULL},
     {"tooltip", (PyCFunction)MainWindow_meth_tooltip, METH_O, NULL},
     {},
 };
