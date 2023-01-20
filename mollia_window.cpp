@@ -15,7 +15,9 @@ struct MainWindow {
     PyObject * size;
     PyObject * ratio;
     PyObject * mouse;
+    PyObject * mouse_delta;
     PyObject * mouse_wheel;
+    PyObject * frame;
     PyObject * text;
     PyObject * config;
     PyObject * tooltip;
@@ -29,7 +31,10 @@ float sidebar_width;
 bool closed;
 int mouse_x;
 int mouse_y;
+int mouse_dx;
+int mouse_dy;
 int mouse_wheel;
+int frame;
 bool key_down[280];
 bool prev_key_down[280];
 char text[1024];
@@ -145,7 +150,9 @@ MainWindow * meth_main_window(PyObject * self, PyObject * args, PyObject * kwarg
     res->size = Py_BuildValue("(II)", width - sidebar, height);
     res->ratio = PyFloat_FromDouble((double)(width - sidebar) / (double)height);
     res->mouse = Py_BuildValue("(ii)", 0, 0);
+    res->mouse_delta = Py_BuildValue("(ii)", 0, 0);
     res->mouse_wheel = PyLong_FromLong(0);
+    res->frame = PyLong_FromLong(0);
 
     Py_INCREF(empty_str);
     res->text = empty_str;
@@ -423,6 +430,9 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, draw_fbo);
 
     memcpy(prev_key_down, key_down, sizeof(key_down));
+    mouse_dx = 0;
+    mouse_dy = 0;
+    mouse_wheel = 0;
     text[0] = 0;
 
     SDL_Event event;
@@ -465,6 +475,8 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
                 if (!io.WantCaptureMouse) {
                     mouse_x = event.motion.x;
                     mouse_y = event.motion.y;
+                    mouse_dx += event.motion.xrel;
+                    mouse_dy += event.motion.yrel;
                 }
                 break;
             }
@@ -479,7 +491,9 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     }
 
     Py_DECREF(self->mouse);
+    Py_DECREF(self->mouse_delta);
     Py_DECREF(self->mouse_wheel);
+    Py_DECREF(self->frame);
     Py_DECREF(self->text);
 
     if (text[0]) {
@@ -490,11 +504,15 @@ PyObject * MainWindow_meth_update(MainWindow * self) {
     }
 
     self->mouse = Py_BuildValue("(ii)", mouse_x, mouse_y);
+    self->mouse_delta = Py_BuildValue("(ii)", mouse_dx, mouse_dy);
     self->mouse_wheel = PyLong_FromLong(mouse_wheel);
+    self->frame = PyLong_FromLong(frame);
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
+    frame += 1;
+
     Py_RETURN_TRUE;
 }
 
@@ -720,7 +738,9 @@ PyMemberDef MainWindow_members[] = {
     {"size", T_OBJECT, offsetof(MainWindow, size), READONLY, NULL},
     {"ratio", T_OBJECT, offsetof(MainWindow, ratio), READONLY, NULL},
     {"mouse", T_OBJECT, offsetof(MainWindow, mouse), READONLY, NULL},
+    {"mouse_delta", T_OBJECT, offsetof(MainWindow, mouse_delta), READONLY, NULL},
     {"mouse_wheel", T_OBJECT, offsetof(MainWindow, mouse_wheel), READONLY, NULL},
+    {"frame", T_OBJECT, offsetof(MainWindow, frame), READONLY, NULL},
     {"text", T_OBJECT, offsetof(MainWindow, text), READONLY, NULL},
     {"log", T_OBJECT, offsetof(MainWindow, log), READONLY, NULL},
     {"config", T_OBJECT, offsetof(MainWindow, config), READONLY, NULL},

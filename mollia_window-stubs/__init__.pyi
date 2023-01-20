@@ -18,7 +18,9 @@ class MainWindow:
     size: Tuple[int, int]
     ratio: float
     mouse: Tuple[int, int]
+    mouse_delta: Tuple[int, int]
     mouse_wheel: int
+    frame: int
     text: str
     log: io.StringIO
     config: Dict[str, Any]
